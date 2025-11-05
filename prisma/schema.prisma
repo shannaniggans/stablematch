@@ -1,0 +1,286 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL") // e.g. file:./dev.db
+}
+
+/* =========================
+   Enums
+   ========================= */
+enum Role {
+  owner
+  practitioner
+  receptionist
+  read_only
+}
+
+enum ApptStatus {
+  scheduled
+  confirmed
+  completed
+  cancelled
+}
+
+enum InvoiceStatus {
+  draft
+  sent
+  paid
+  void
+}
+
+/* =========================
+   Core Multi-Tenant Models
+   ========================= */
+model Practice {
+  id        String   @id @default(cuid())
+  name      String
+  timezone  String   @default("Australia/Sydney")
+  users     User[]
+  services  Service[]
+  clients   Client[]
+  appts     Appointment[]
+  invoices  Invoice[]
+  audits    AuditLog[]
+  createdAt DateTime @default(now())
+}
+
+model User {
+  // NextAuth base fields
+  id             String    @id @default(cuid())
+  name           String?
+  email          String?   @unique
+  emailVerified  DateTime?
+  image          String?
+
+  // App fields
+  role           Role
+  practiceId     String
+  practice       Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  // Relations
+  accounts       Account[]
+  sessions       Session[]
+  notesAuthored  Note[]        @relation("NoteAuthor")
+  appointments   Appointment[] @relation("ApptPractitioner")
+
+  @@index([practiceId])
+}
+
+model Client {
+  id          String    @id @default(cuid())
+  practiceId  String
+  practice    Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String?
+  address     String?
+  notes       String?
+
+  horses      Horse[]
+  appts       Appointment[]
+  invoices    Invoice[]
+
+  @@index([practiceId])
+}
+
+model Horse {
+  id        String  @id @default(cuid())
+  clientId  String
+  client    Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  name      String
+  breed     String?
+  age       Int?
+  notes     String?
+
+  appts     Appointment[]
+}
+
+model Service {
+  id           String    @id @default(cuid())
+  practiceId   String
+  practice     Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  name         String
+  durationMins Int
+  priceCents   Int
+  taxRate      Float     @default(0.1)
+  isActive     Boolean   @default(true)
+
+  appts        Appointment[]
+
+  @@index([practiceId])
+}
+
+model Availability {
+  id             String   @id @default(cuid())
+  practitionerId String
+  practitioner   User     @relation(fields: [practitionerId], references: [id], onDelete: Cascade)
+
+  // 0 = Sunday ... 6 = Saturday
+  weekday        Int
+  // "HH:mm" (24h) local to practice timezone; store as text
+  startTime      String
+  endTime        String
+
+  effectiveFrom  DateTime?
+  effectiveTo    DateTime?
+
+  @@index([practitionerId, weekday])
+}
+
+model Appointment {
+  id             String       @id @default(cuid())
+  practiceId     String
+  practice       Practice     @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  practitionerId String
+  practitioner   User         @relation("ApptPractitioner", fields: [practitionerId], references: [id])
+
+  clientId       String
+  client         Client       @relation(fields: [clientId], references: [id])
+
+  horseId        String?
+  horse          Horse?       @relation(fields: [horseId], references: [id])
+
+  serviceId      String
+  service        Service      @relation(fields: [serviceId], references: [id])
+
+  // Store as DateTime (Prisma serialises to ISO8601; fine for SQLite)
+  start          DateTime
+  end            DateTime
+
+  status         ApptStatus   @default(scheduled)
+  locationText   String?
+
+  notes          Note[]
+
+  @@index([practiceId])
+  @@index([practitionerId, start])
+}
+
+model Note {
+  id            String    @id @default(cuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  authorId      String
+  author        User      @relation("NoteAuthor", fields: [authorId], references: [id])
+
+  body          String
+  isPrivate     Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  practiceId    String
+  practice      Practice      @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  number        String        @unique
+  clientId      String
+  client        Client        @relation(fields: [clientId], references: [id])
+
+  issuedAt      DateTime
+  dueAt         DateTime
+  status        InvoiceStatus @default(draft)
+
+  subtotalCents Int
+  taxCents      Int
+  totalCents    Int
+
+  items         InvoiceItem[]
+  payments      Payment[]
+
+  @@index([practiceId])
+  @@index([clientId])
+}
+
+model InvoiceItem {
+  id              String   @id @default(cuid())
+  invoiceId       String
+  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  description     String
+  qty             Int
+  unitPriceCents  Int
+  taxRate         Float    @default(0.1)
+}
+
+model Payment {
+  id                   String   @id @default(cuid())
+  invoiceId            String
+  invoice              Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  amountCents          Int
+  method               String   // e.g. "cash" | "card" | "bank" | "stripe"
+  paidAt               DateTime
+  stripePaymentIntentId String?
+}
+
+/* =========================
+   Audit
+   ========================= */
+model AuditLog {
+  id         String   @id @default(cuid())
+  practiceId String
+  practice   Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+
+  entityType String
+  entityId   String
+  action     String     // "create" | "update" | "delete"
+  diffJSON   Json?
+  createdAt  DateTime  @default(now())
+
+  @@index([practiceId, createdAt])
+}
+
+/* =========================
+   NextAuth Adapter Models
+   (Standard from @next-auth/prisma-adapter)
+   ========================= */
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
