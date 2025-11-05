@@ -5,7 +5,8 @@
  * Or compile to JS and run with node.
  */
 
-import { PrismaClient, Role, ApptStatus, InvoiceStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import type { Role, AppointmentStatus, InvoiceStatus } from '@/lib/constants/enums';
 
 const prisma = new PrismaClient();
 
@@ -48,7 +49,7 @@ async function main() {
     data: {
       name: 'Owner One',
       email: 'owner@example.com',
-      role: Role.owner,
+      role: 'owner' as Role,
       practiceId: practice.id,
       emailVerified: null,
     },
@@ -58,7 +59,7 @@ async function main() {
     data: {
       name: 'Dr. Alex Hoof',
       email: 'practitioner@example.com',
-      role: Role.practitioner,
+      role: 'practitioner' as Role,
       practiceId: practice.id,
     },
   });
@@ -67,7 +68,7 @@ async function main() {
     data: {
       name: 'Sam Frontdesk',
       email: 'reception@example.com',
-      role: Role.receptionist,
+      role: 'receptionist' as Role,
       practiceId: practice.id,
     },
   });
@@ -182,7 +183,7 @@ async function main() {
       serviceId: lameness.id,
       start: isoAtLocalTime(nextDay, 10, 0),
       end: isoAtLocalTime(nextDay, 11, 0),
-      status: ApptStatus.confirmed,
+      status: 'confirmed' as AppointmentStatus,
       locationText: 'On-site: 123 Paddock Lane',
     },
     include: { service: true, client: true },
@@ -197,7 +198,7 @@ async function main() {
       serviceId: trim.id,
       start: isoAtLocalTime(twoDays, 14, 0),
       end: isoAtLocalTime(twoDays, 14, 45),
-      status: ApptStatus.scheduled,
+      status: 'scheduled' as AppointmentStatus,
       locationText: 'Clinic',
     },
   });
@@ -211,7 +212,7 @@ async function main() {
       serviceId: massage.id,
       start: isoAtLocalTime(lastWeek, 9, 0),
       end: isoAtLocalTime(lastWeek, 10, 0),
-      status: ApptStatus.completed,
+      status: 'completed' as AppointmentStatus,
       locationText: 'On-site: 123 Paddock Lane',
     },
     include: { service: true },
@@ -248,7 +249,7 @@ async function main() {
       clientId: clientA.id,
       issuedAt: new Date(),
       dueAt: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
-      status: InvoiceStatus.draft,
+      status: 'draft' as InvoiceStatus,
       subtotalCents: invSubtotal,
       taxCents: invTax,
       totalCents: invTotal,

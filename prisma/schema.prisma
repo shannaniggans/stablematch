@@ -9,246 +9,252 @@ datasource db {
   url      = env("DATABASE_URL") // e.g. file:./dev.db
 }
 
-/* =========================
-   Enums
-   ========================= */
-enum Role {
-  owner
-  practitioner
-  receptionist
-  read_only
-}
-
-enum ApptStatus {
-  scheduled
-  confirmed
-  completed
-  cancelled
-}
-
-enum InvoiceStatus {
-  draft
-  sent
-  paid
-  void
-}
-
-/* =========================
-   Core Multi-Tenant Models
-   ========================= */
+// =========================
+// Core Multi-Tenant Models
+// =========================
 model Practice {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   name      String
-  timezone  String   @default("Australia/Sydney")
+  timezone  String        @default("Australia/Sydney")
   users     User[]
   services  Service[]
   clients   Client[]
   appts     Appointment[]
   invoices  Invoice[]
   audits    AuditLog[]
-  createdAt DateTime @default(now())
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 }
 
 model User {
   // NextAuth base fields
-  id             String    @id @default(cuid())
-  name           String?
-  email          String?   @unique
-  emailVerified  DateTime?
-  image          String?
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
 
   // App fields
-  role           Role
-  practiceId     String
-  practice       Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  role       String   @default("practitioner")
+  practiceId String
+  practice   Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   // Relations
-  accounts       Account[]
-  sessions       Session[]
-  notesAuthored  Note[]        @relation("NoteAuthor")
-  appointments   Appointment[] @relation("ApptPractitioner")
+  accounts      Account[]
+  sessions      Session[]
+  notesAuthored Note[]         @relation("NoteAuthor")
+  appointments  Appointment[]  @relation("ApptPractitioner")
+  Availability  Availability[]
+  AuditLog      AuditLog[]
 
   @@index([practiceId])
 }
 
 model Client {
-  id          String    @id @default(cuid())
-  practiceId  String
-  practice    Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  practiceId String
+  practice   Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 
-  firstName   String
-  lastName    String
-  email       String?
-  phone       String?
-  address     String?
-  notes       String?
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  address   String?
+  notes     String?
 
-  horses      Horse[]
-  appts       Appointment[]
-  invoices    Invoice[]
+  horses   Horse[]
+  appts    Appointment[]
+  invoices Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([practiceId])
 }
 
 model Horse {
-  id        String  @id @default(cuid())
-  clientId  String
-  client    Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  name      String
-  breed     String?
-  age       Int?
-  notes     String?
+  name  String
+  breed String?
+  age   Int?
+  notes String?
 
-  appts     Appointment[]
+  appts Appointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
 }
 
 model Service {
-  id           String    @id @default(cuid())
-  practiceId   String
-  practice     Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  practiceId String
+  practice   Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 
   name         String
   durationMins Int
   priceCents   Int
-  taxRate      Float     @default(0.1)
-  isActive     Boolean   @default(true)
+  taxRate      Float   @default(0.1)
+  isActive     Boolean @default(true)
 
-  appts        Appointment[]
+  appts Appointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([practiceId])
 }
 
 model Availability {
-  id             String   @id @default(cuid())
+  id             String @id @default(cuid())
   practitionerId String
-  practitioner   User     @relation(fields: [practitionerId], references: [id], onDelete: Cascade)
+  practitioner   User   @relation(fields: [practitionerId], references: [id], onDelete: Cascade)
 
   // 0 = Sunday ... 6 = Saturday
-  weekday        Int
+  weekday   Int
   // "HH:mm" (24h) local to practice timezone; store as text
-  startTime      String
-  endTime        String
+  startTime String
+  endTime   String
 
-  effectiveFrom  DateTime?
-  effectiveTo    DateTime?
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([practitionerId, weekday])
 }
 
 model Appointment {
-  id             String       @id @default(cuid())
-  practiceId     String
-  practice       Practice     @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  practiceId String
+  practice   Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 
   practitionerId String
-  practitioner   User         @relation("ApptPractitioner", fields: [practitionerId], references: [id])
+  practitioner   User   @relation("ApptPractitioner", fields: [practitionerId], references: [id])
 
-  clientId       String
-  client         Client       @relation(fields: [clientId], references: [id])
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
 
-  horseId        String?
-  horse          Horse?       @relation(fields: [horseId], references: [id])
+  horseId String?
+  horse   Horse?  @relation(fields: [horseId], references: [id])
 
-  serviceId      String
-  service        Service      @relation(fields: [serviceId], references: [id])
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
 
   // Store as DateTime (Prisma serialises to ISO8601; fine for SQLite)
-  start          DateTime
-  end            DateTime
+  start DateTime
+  end   DateTime
 
-  status         ApptStatus   @default(scheduled)
-  locationText   String?
+  status       String  @default("scheduled")
+  locationText String?
 
-  notes          Note[]
+  notes Note[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([practiceId])
   @@index([practitionerId, start])
 }
 
 model Note {
-  id            String    @id @default(cuid())
+  id            String      @id @default(cuid())
   appointmentId String
   appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
-  authorId      String
-  author        User      @relation("NoteAuthor", fields: [authorId], references: [id])
+  authorId String
+  author   User   @relation("NoteAuthor", fields: [authorId], references: [id])
 
-  body          String
-  isPrivate     Boolean   @default(true)
-  createdAt     DateTime  @default(now())
+  body      String
+  isPrivate Boolean  @default(true)
+  createdAt DateTime @default(now())
 }
 
 model Invoice {
-  id            String        @id @default(cuid())
-  practiceId    String
-  practice      Practice      @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  practiceId String
+  practice   Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 
-  number        String        @unique
-  clientId      String
-  client        Client        @relation(fields: [clientId], references: [id])
+  number   String @unique
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
 
-  issuedAt      DateTime
-  dueAt         DateTime
-  status        InvoiceStatus @default(draft)
+  issuedAt DateTime
+  dueAt    DateTime
+  status   String   @default("draft")
 
   subtotalCents Int
   taxCents      Int
   totalCents    Int
 
-  items         InvoiceItem[]
-  payments      Payment[]
+  items     InvoiceItem[]
+  payments  Payment[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
   @@index([practiceId])
   @@index([clientId])
 }
 
 model InvoiceItem {
-  id              String   @id @default(cuid())
-  invoiceId       String
-  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
-  description     String
-  qty             Int
-  unitPriceCents  Int
-  taxRate         Float    @default(0.1)
+  description    String
+  qty            Int
+  unitPriceCents Int
+  taxRate        Float    @default(0.1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model Payment {
-  id                   String   @id @default(cuid())
-  invoiceId            String
-  invoice              Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
-  amountCents          Int
-  method               String   // e.g. "cash" | "card" | "bank" | "stripe"
-  paidAt               DateTime
+  amountCents           Int
+  method                String // e.g. "cash" | "card" | "bank" | "stripe"
+  paidAt                DateTime
   stripePaymentIntentId String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([invoiceId])
 }
 
-/* =========================
-   Audit
-   ========================= */
+// =========================
+// Audit
+// =========================
 model AuditLog {
   id         String   @id @default(cuid())
   practiceId String
   practice   Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 
-  userId     String?
-  user       User?    @relation(fields: [userId], references: [id])
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
 
   entityType String
   entityId   String
-  action     String     // "create" | "update" | "delete"
-  diffJSON   Json?
-  createdAt  DateTime  @default(now())
+  action     String // "create" | "update" | "delete"
+  diffJSON   String?
+  createdAt  DateTime @default(now())
 
   @@index([practiceId, createdAt])
 }
 
-/* =========================
-   NextAuth Adapter Models
-   (Standard from @next-auth/prisma-adapter)
-   ========================= */
+// =========================
+// NextAuth Adapter Models
+// (Standard from @next-auth/prisma-adapter)
+// =========================
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -263,7 +269,7 @@ model Account {
   id_token          String?
   session_state     String?
 
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -274,7 +280,7 @@ model Session {
   userId       String
   expires      DateTime
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {

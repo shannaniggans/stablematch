@@ -1,0 +1,43 @@
+import { z } from 'zod';
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  DATABASE_URL: z.string().url().optional(),
+  AUTH_SECRET: z.string().min(16, 'AUTH_SECRET must be at least 16 characters').default('dev-secret'),
+  NEXTAUTH_URL: z.string().url().optional(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  EMAIL_FROM: z.string().email().optional(),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  PRACTICE_ID: z.string().optional(),
+  USER_ID: z.string().optional(),
+  DEV_LOGIN_EMAIL: z.string().email().optional(),
+  DEV_LOGIN_PASSWORD: z.string().optional(),
+  DEV_PRACTICE_NAME: z.string().optional(),
+});
+
+export const env = envSchema.parse({
+  NODE_ENV: process.env.NODE_ENV,
+  DATABASE_URL: process.env.DATABASE_URL,
+  AUTH_SECRET: process.env.AUTH_SECRET,
+  NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  EMAIL_FROM: process.env.EMAIL_FROM,
+  SMTP_HOST: process.env.SMTP_HOST,
+  SMTP_PORT: process.env.SMTP_PORT,
+  SMTP_USER: process.env.SMTP_USER,
+  SMTP_PASSWORD: process.env.SMTP_PASSWORD,
+  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+  PRACTICE_ID: process.env.PRACTICE_ID,
+  USER_ID: process.env.USER_ID,
+  DEV_LOGIN_EMAIL: process.env.DEV_LOGIN_EMAIL,
+  DEV_LOGIN_PASSWORD: process.env.DEV_LOGIN_PASSWORD,
+  DEV_PRACTICE_NAME: process.env.DEV_PRACTICE_NAME,
+});
