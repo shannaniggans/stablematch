@@ -2,11 +2,22 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 export interface ClientOverview {
   id: string;
@@ -91,12 +102,20 @@ export function ClientsTable({ initialClients }: ClientsTableProps) {
           <h1 className="text-2xl font-semibold text-foreground">Clients</h1>
           <p className="text-sm text-muted-foreground">Manage client profiles, horses, and booking history.</p>
         </div>
-        <Input
-          placeholder="Search clients..."
-          className="w-full max-w-xs"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <Input
+            placeholder="Search clients..."
+            className="w-full max-w-xs"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <CreateClientDialog
+            onCreated={() => {
+              setQuery('');
+              setDebouncedQuery('');
+            }}
+          />
+        </div>
       </div>
 
       <div className="rounded-xl border bg-card">
@@ -148,5 +167,147 @@ export function ClientsTable({ initialClients }: ClientsTableProps) {
         {transformed.length} of {data.total} clients
       </Badge>
     </div>
+  );
+}
+
+interface CreateClientDialogProps {
+  onCreated?: () => void;
+}
+
+const createEmptyForm = () => ({
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: '',
+  address: '',
+  notes: '',
+});
+
+function CreateClientDialog({ onCreated }: CreateClientDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState(createEmptyForm);
+  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: async (payload: ReturnType<typeof createEmptyForm>) => {
+      const body = {
+        firstName: payload.firstName.trim(),
+        lastName: payload.lastName.trim(),
+        email: payload.email.trim() || undefined,
+        phone: payload.phone.trim() || undefined,
+        address: payload.address.trim() || undefined,
+        notes: payload.notes.trim() || undefined,
+      };
+      if (!body.firstName || !body.lastName) {
+        throw new Error('First and last name are required.');
+      }
+      const res = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const payloadError = await res.json().catch(() => ({}));
+        throw new Error(payloadError.error ?? 'Unable to create client');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      setOpen(false);
+      setForm(createEmptyForm());
+      setError(null);
+      onCreated?.();
+    },
+    onError: (err: any) => {
+      setError(err.message ?? 'Unable to create client');
+    },
+  });
+
+  const handleOpenChange = (value: boolean) => {
+    setOpen(value);
+    if (!value) {
+      setForm(createEmptyForm());
+      setError(null);
+      mutation.reset();
+    }
+  };
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    mutation.mutate(form);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        <Button className="w-full sm:w-auto">New client</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Add client</DialogTitle>
+          <DialogDescription>Create a client profile that can be used for future bookings.</DialogDescription>
+        </DialogHeader>
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              placeholder="First name"
+              required
+              value={form.firstName}
+              onChange={(event) => setForm((prev) => ({ ...prev, firstName: event.target.value }))}
+              disabled={mutation.isPending}
+            />
+            <Input
+              placeholder="Last name"
+              required
+              value={form.lastName}
+              onChange={(event) => setForm((prev) => ({ ...prev, lastName: event.target.value }))}
+              disabled={mutation.isPending}
+            />
+          </div>
+          <Input
+            placeholder="Email (optional)"
+            type="email"
+            value={form.email}
+            onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
+            disabled={mutation.isPending}
+          />
+          <Input
+            placeholder="Phone (optional)"
+            value={form.phone}
+            onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
+            disabled={mutation.isPending}
+          />
+          <Textarea
+            placeholder="Address (optional)"
+            value={form.address}
+            onChange={(event) => setForm((prev) => ({ ...prev, address: event.target.value }))}
+            disabled={mutation.isPending}
+          />
+          <Textarea
+            placeholder="Internal notes (optional)"
+            value={form.notes}
+            onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
+            disabled={mutation.isPending}
+          />
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => handleOpenChange(false)}
+              disabled={mutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? 'Saving…' : 'Create client'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

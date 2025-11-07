@@ -1,8 +1,23 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
-  ({ className, ...props }, ref) => {
+interface TextareaProps
+  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  minRows?: number;
+  maxRows?: number;
+}
+
+const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
+  ({ className, minRows, maxRows, style, ...props }, ref) => {
+    const blockStyle: React.CSSProperties = {
+      ...style,
+    };
+    if (minRows !== undefined) {
+      blockStyle.minHeight = `calc(${minRows} * 1.5rem)`;
+    }
+    if (maxRows !== undefined) {
+      blockStyle.maxHeight = `calc(${maxRows} * 1.5rem)`;
+    }
     return (
       <textarea
         className={cn(
@@ -10,6 +25,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttribu
           className,
         )}
         ref={ref}
+        style={blockStyle}
         {...props}
       />
     );

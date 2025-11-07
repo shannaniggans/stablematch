@@ -3,7 +3,12 @@ import { prisma } from '@/lib/prisma';
 import { requireUser } from '@/lib/auth/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency, formatDateTime } from '@/lib/utils';
+import { formatCurrency, formatDateTime, calculateAgeFromDate } from '@/lib/utils';
+import {
+  HORSE_EDUCATION_LEVEL_OPTIONS,
+  HORSE_SEX_OPTIONS,
+  RIDING_STYLE_OPTIONS,
+} from '@/lib/constants/horses';
 
 interface ClientPageProps {
   params: { id: string };
@@ -63,15 +68,60 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
             {client.horses.length === 0 ? (
               <p className="text-sm text-muted-foreground">No horses recorded yet.</p>
             ) : (
-              client.horses.map((horse) => (
-                <div key={horse.id} className="rounded-lg border bg-card px-3 py-2">
-                  <p className="font-medium text-foreground">{horse.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {horse.breed ?? 'Breed unknown'} • {horse.age ? horse.age + ' yrs' : 'Age N/A'}
-                  </p>
-                  {horse.notes ? <p className="mt-1 text-xs text-muted-foreground">{horse.notes}</p> : null}
-                </div>
-              ))
+              client.horses.map((horse) => {
+                const computedAge = horse.dateOfBirth
+                  ? calculateAgeFromDate(horse.dateOfBirth)
+                  : horse.age;
+                const ridingLabel = horse.typeOfRiding
+                  ? RIDING_STYLE_OPTIONS.find((option) => option.value === horse.typeOfRiding)?.label ??
+                    horse.typeOfRiding
+                  : null;
+                const educationLabel = horse.educationLevel
+                  ? HORSE_EDUCATION_LEVEL_OPTIONS.find(
+                      (option) => option.value === horse.educationLevel,
+                    )?.label ?? horse.educationLevel
+                  : null;
+                return (
+                  <div key={horse.id} className="rounded-lg border bg-card px-3 py-2">
+                    <p className="font-medium text-foreground">{horse.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {horse.breed ?? 'Breed unknown'} • {computedAge != null ? `${computedAge} yrs` : 'Age N/A'}
+                    </p>
+                    <div className="mt-1 space-y-1 text-xs text-muted-foreground">
+                      {ridingLabel ? <p>Discipline: {ridingLabel}</p> : null}
+                      {educationLabel ? <p>Education: {educationLabel}</p> : null}
+                      {horse.behaviouralNotes ? <p>Behaviour: {horse.behaviouralNotes}</p> : null}
+                      {horse.propertyName || horse.propertyAddress ? (
+                        <p>
+                          Property: {horse.propertyName ?? '—'}
+                          {horse.propertyAddress ? ` • ${horse.propertyAddress}` : ''}
+                        </p>
+                      ) : null}
+                      {horse.picNumber ? <p>PIC: {horse.picNumber}</p> : null}
+                      {horse.color ? <p>Colour: {horse.color}</p> : null}
+                      {horse.height ? <p>Height: {horse.height}</p> : null}
+                      {horse.sex ? (
+                        <p>
+                          Sex: {HORSE_SEX_OPTIONS.find((option) => option.value === horse.sex)?.label ?? horse.sex}
+                        </p>
+                      ) : null}
+                      {horse.lastDentalDate ? (
+                        <p>Dental: {new Date(horse.lastDentalDate).toLocaleDateString()}</p>
+                      ) : null}
+                      {horse.lastVaccinationDate ? (
+                        <p>Vaccinations: {new Date(horse.lastVaccinationDate).toLocaleDateString()}</p>
+                      ) : null}
+                      {horse.lastSaddleFitDate ? (
+                        <p>Saddle fitting: {new Date(horse.lastSaddleFitDate).toLocaleDateString()}</p>
+                      ) : null}
+                      {horse.lastWormingDate ? (
+                        <p>Worming: {new Date(horse.lastWormingDate).toLocaleDateString()}</p>
+                      ) : null}
+                      {horse.notes ? <p>{horse.notes}</p> : null}
+                    </div>
+                  </div>
+                );
+              })
             )}
           </CardContent>
         </Card>

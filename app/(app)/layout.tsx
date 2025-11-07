@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ReactNode } from 'react';
-import { LayoutDashboard, CalendarDays, Users, NotebookPen, FileSpreadsheet, Settings } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, NotebookPen, FileSpreadsheet, Settings, MapPin } from 'lucide-react';
 import { SideNav } from '@/components/layout/side-nav';
 import { UserNav } from '@/components/layout/user-nav';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: '/calendar', label: 'Calendar', icon: <CalendarDays className="h-4 w-4" /> },
   { href: '/clients', label: 'Clients', icon: <Users className="h-4 w-4" /> },
   { href: '/appointments', label: 'Appointments', icon: <NotebookPen className="h-4 w-4" /> },
+  { href: '/travel', label: 'Travel', icon: <MapPin className="h-4 w-4" /> },
   { href: '/invoices', label: 'Invoices', icon: <FileSpreadsheet className="h-4 w-4" /> },
   { href: '/settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> },
 ];

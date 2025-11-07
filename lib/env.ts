@@ -19,6 +19,8 @@ const envSchema = z.object({
   DEV_LOGIN_EMAIL: z.string().email().optional(),
   DEV_LOGIN_PASSWORD: z.string().optional(),
   DEV_PRACTICE_NAME: z.string().optional(),
+  DEV_CLIENT_EMAIL: z.string().email().optional(),
+  DEV_CLIENT_PASSWORD: z.string().optional(),
 });
 
 export const env = envSchema.parse({
@@ -40,4 +42,6 @@ export const env = envSchema.parse({
   DEV_LOGIN_EMAIL: process.env.DEV_LOGIN_EMAIL,
   DEV_LOGIN_PASSWORD: process.env.DEV_LOGIN_PASSWORD,
   DEV_PRACTICE_NAME: process.env.DEV_PRACTICE_NAME,
+  DEV_CLIENT_EMAIL: process.env.DEV_CLIENT_EMAIL,
+  DEV_CLIENT_PASSWORD: process.env.DEV_CLIENT_PASSWORD,
 });

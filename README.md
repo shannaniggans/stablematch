@@ -21,12 +21,16 @@ Configure a .env file with DATABASE_URL and AUTH_SECRET. SMTP and Google OAuth c
 
 ### Local demo login
 
-For quick local testing you can use the built-in demo credentials. Either set `DEV_LOGIN_EMAIL` and `DEV_LOGIN_PASSWORD` (plus the matching `NEXT_PUBLIC_` variants for the client button) or use the defaults:
+For quick local testing you can use the built-in demo credentials. Either set the environment variables below (and expose any `NEXT_PUBLIC_` variants if you want the buttons to display custom values) or rely on the defaults.
 
-- Email: `demo@fullstride.local`
-- Password: `demo-login`
+| Persona          | Email                      | Password       | Env overrides                                                  |
+|------------------|----------------------------|----------------|----------------------------------------------------------------|
+| Practice owner   | `demo@fullstride.local`    | `demo-login`   | `DEV_LOGIN_EMAIL`, `DEV_LOGIN_PASSWORD`                        |
+| Client portal    | `client@fullstride.local`  | `client-login` | `DEV_CLIENT_EMAIL`, `DEV_CLIENT_PASSWORD`, `NEXT_PUBLIC_*`     |
 
-The “Continue with local demo” button on the sign-in page will log you in immediately using those credentials and create a demo practice if one doesn’t exist yet.
+- The **“Continue with local demo”** button on the staff sign-in page logs you in as the owner and seeds a demo practice if needed.
+- The **“Use demo client”** button on the client portal sign-in screen logs you straight into the portal with a sample client account, creating one if it does not exist.
+
 
 ## Scripts
 - npm run dev — start the development server

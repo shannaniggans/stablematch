@@ -13,6 +13,7 @@ declare module 'next-auth' {
       id: string;
       role: Role;
       practiceId: string;
+      clientId: string | null;
     };
   }
 }

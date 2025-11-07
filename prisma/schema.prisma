@@ -22,6 +22,7 @@ model Practice {
   appts     Appointment[]
   invoices  Invoice[]
   audits    AuditLog[]
+  waivers   WaiverRequest[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 }
@@ -35,6 +36,7 @@ model User {
   image         String?
 
   // App fields
+  passwordHash String?
   role       String   @default("practitioner")
   practiceId String
   practice   Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
@@ -48,6 +50,12 @@ model User {
   appointments  Appointment[]  @relation("ApptPractitioner")
   Availability  Availability[]
   AuditLog      AuditLog[]
+  clientProfile Client?
+  clientShareAccess ClientPractitionerShare[] @relation("PractitionerShares")
+  clientsCreated Client[] @relation("ClientCreatedBy")
+  linkRequests   ClientLinkRequest[] @relation("ClientLinkRequestPractitioner")
+  travelSlots    PractitionerTravelSlot[]
+  waiverRequests WaiverRequest[]
 
   @@index([practiceId])
 }
@@ -63,10 +71,25 @@ model Client {
   phone     String?
   address   String?
   notes     String?
+  userId    String?  @unique
+  user      User?    @relation(fields: [userId], references: [id])
+  shareProfileWithPractitioners Boolean @default(false)
+  shareHorsesWithPractitioners  Boolean @default(false)
+  shareContactInfoDefault       Boolean @default(true)
+  shareAddressDefault           Boolean @default(false)
+  shareNotesDefault             Boolean @default(false)
+  createdByPractitionerId       String?
+  createdByPractitioner         User?    @relation("ClientCreatedBy", fields: [createdByPractitionerId], references: [id])
+  isPrivate                     Boolean @default(false)
+  privateUntilLinked            Boolean @default(false)
 
   horses   Horse[]
   appts    Appointment[]
   invoices Invoice[]
+  shares   ClientPractitionerShare[] @relation("ClientShares")
+  linkRequests ClientLinkRequest[]   @relation("ClientLinkRequests")
+  waiverRequests WaiverRequest[]
+  saddles Saddle[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -79,10 +102,25 @@ model Horse {
   clientId String
   client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  name  String
-  breed String?
-  age   Int?
-  notes String?
+  name              String
+  breed             String?
+  age               Int?
+  dateOfBirth       DateTime?
+  typeOfRiding      String?
+  educationLevel    String?
+  behaviouralNotes  String?
+  lastDentalDate    DateTime?
+  lastVaccinationDate DateTime?
+  lastSaddleFitDate DateTime?
+  lastWormingDate   DateTime?
+  propertyName      String?
+  propertyAddress   String?
+  picNumber         String?
+  photoDataUrl      String?
+  color             String?
+  height            String?
+  sex               String?
+  notes             String?
 
   appts Appointment[]
 
@@ -175,6 +213,105 @@ model Note {
   body      String
   isPrivate Boolean  @default(true)
   createdAt DateTime @default(now())
+}
+
+model ClientPractitionerShare {
+  id              String   @id @default(cuid())
+  clientId        String
+  practitionerId  String
+  shareProfile    Boolean  @default(true)
+  shareHorses     Boolean  @default(true)
+  shareContactInfo Boolean @default(true)
+  shareAddress    Boolean  @default(false)
+  shareNotes      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  client        Client @relation("ClientShares", fields: [clientId], references: [id], onDelete: Cascade)
+  practitioner  User   @relation("PractitionerShares", fields: [practitionerId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, practitionerId])
+  @@index([practitionerId])
+}
+
+model ClientLinkRequest {
+  id          String   @id @default(cuid())
+  clientId    String
+  practitionerId String
+  email       String?
+  phone       String?
+  status      String   @default("pending") // pending | approved | denied
+  requestedAt DateTime @default(now())
+  respondedAt DateTime?
+
+  client       Client @relation("ClientLinkRequests", fields: [clientId], references: [id], onDelete: Cascade)
+  practitioner User   @relation("ClientLinkRequestPractitioner", fields: [practitionerId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([practitionerId])
+}
+
+model PractitionerTravelSlot {
+  id             String   @id @default(cuid())
+  practitionerId String
+  practitioner   User     @relation(fields: [practitionerId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  locationName   String
+  latitude       Float?
+  longitude      Float?
+  start          DateTime
+  end            DateTime
+  isRecurring    Boolean  @default(false)
+  weekday        Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([practitionerId, start])
+}
+
+model WaiverRequest {
+  id              String   @id @default(cuid())
+  practiceId      String
+  practice        Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  practitionerId  String
+  practitioner    User     @relation(fields: [practitionerId], references: [id], onDelete: Cascade)
+  clientId        String
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title           String
+  body            String
+  status          String   @default("pending") // pending | signed | declined
+  token           String   @unique
+  sentAt          DateTime @default(now())
+  signedAt        DateTime?
+  signatureName   String?
+  signatureEmail  String?
+  signatureData   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([practiceId])
+  @@index([clientId])
+}
+
+model Saddle {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  type        String
+  color       String?
+  brand       String?
+  seatSize    String?
+  gulletWidth String?
+  notes       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
 }
 
 model Invoice {

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requireUser } from '@/lib/auth/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { CreateAppointmentDialog } from '@/components/appointments/create-appointment-dialog';
 import { formatDateTime } from '@/lib/utils';
 
 export default async function AppointmentsPage() {
@@ -58,9 +59,12 @@ export default async function AppointmentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-foreground">Appointments</h1>
-        <p className="text-sm text-muted-foreground">Review upcoming sessions and revisit recent outcomes.</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Appointments</h1>
+          <p className="text-sm text-muted-foreground">Review upcoming sessions and revisit recent outcomes.</p>
+        </div>
+        <CreateAppointmentDialog triggerLabel="Book appointment" afterCreatePath="/appointments" />
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="border border-primary/20">

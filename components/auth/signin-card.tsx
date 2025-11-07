@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
@@ -106,6 +107,13 @@ export function SignInCard() {
           </Button>
         </div>
         {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+        <p className="text-center text-xs text-muted-foreground">
+          Are you a client?{' '}
+          <Link href="/portal/signin" className="font-medium text-primary hover:underline">
+            Access the client portal
+          </Link>
+          .
+        </p>
       </CardContent>
     </Card>
   );

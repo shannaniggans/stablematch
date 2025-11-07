@@ -8,6 +8,8 @@ export const ClientCreateSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   notes: z.string().optional(),
+  shareProfileWithPractitioners: z.boolean().optional(),
+  shareHorsesWithPractitioners: z.boolean().optional(),
 });
 export type ClientCreateInput = z.infer<typeof ClientCreateSchema>;
 

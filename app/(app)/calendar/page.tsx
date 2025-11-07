@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { requireUser } from '@/lib/auth/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { CreateAppointmentDialog } from '@/components/appointments/create-appointment-dialog';
 
 export default async function CalendarPage() {
   const user = await requireUser();
@@ -25,11 +26,14 @@ export default async function CalendarPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-foreground">Week overview</h1>
-        <p className="text-sm text-muted-foreground">
-          {weekStart.toLocaleString(DateTime.DATE_MED)} — {weekEnd.toLocaleString(DateTime.DATE_MED)} ({timezone})
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Week overview</h1>
+          <p className="text-sm text-muted-foreground">
+            {weekStart.toLocaleString(DateTime.DATE_MED)} — {weekEnd.toLocaleString(DateTime.DATE_MED)} ({timezone})
+          </p>
+        </div>
+        <CreateAppointmentDialog triggerLabel="Add appointment" afterCreatePath="/calendar" />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

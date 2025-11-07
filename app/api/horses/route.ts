@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getPracticeId, getUserIdOptional } from '@/lib/tenancy';
 import { HorseCreateSchema, HorseQuerySchema } from '@/lib/validation/horse';
 import { recordAuditLog } from '@/lib/server/audit';
+import { normalizeHorsePayload } from '@/lib/server/horse';
 
 export async function GET(req: NextRequest) {
   try {
@@ -43,6 +44,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const practiceId = getPracticeId(req);
+    const userId = getUserIdOptional(req);
     const json = await req.json();
     const parsed = HorseCreateSchema.safeParse(json);
     if (!parsed.success) {
@@ -57,8 +59,9 @@ export async function POST(req: NextRequest) {
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
+    const horseData = normalizeHorsePayload(parsed.data);
     const created = await prisma.horse.create({
-      data: parsed.data,
+      data: horseData,
       include: { client: true },
     });
     await recordAuditLog({
@@ -67,7 +70,7 @@ export async function POST(req: NextRequest) {
       entityType: 'Horse',
       entityId: created.id,
       action: 'create',
-      diffJSON: parsed.data,
+      diffJSON: horseData,
     });
     return NextResponse.json(created, { status: 201 });
   } catch (error: any) {

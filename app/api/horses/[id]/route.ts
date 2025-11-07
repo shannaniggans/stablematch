@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getPracticeId, getUserIdOptional } from '@/lib/tenancy';
 import { HorseUpdateSchema } from '@/lib/validation/horse';
 import { recordAuditLog } from '@/lib/server/audit';
+import { normalizeHorsePayload } from '@/lib/server/horse';
 
 interface Params {
   params: { id: string };
@@ -39,9 +40,10 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (!existing) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
+    const horseData = normalizeHorsePayload(parsed.data);
     const updated = await prisma.horse.update({
       where: { id: existing.id },
-      data: parsed.data,
+      data: horseData,
       include: { client: true },
     });
     await recordAuditLog({
@@ -50,7 +52,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
       entityType: 'Horse',
       entityId: updated.id,
       action: 'update',
-      diffJSON: parsed.data,
+      diffJSON: horseData,
     });
     return NextResponse.json(updated);
   } catch (error: any) {

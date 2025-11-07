@@ -38,6 +38,7 @@
     "@tanstack/react-query-devtools": "^5.40.0",
     "@total-typescript/ts-reset": "^0.5.1",
     "@types/luxon": "^3.3.3",
+    "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.379.0",
